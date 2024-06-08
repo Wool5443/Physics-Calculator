@@ -1,0 +1,9 @@
+[submodule "Tree"]
+	path = Tree
+	url = https://github.com/Wool5443/Tree
+[submodule "Utils"]
+	path = Utils
+	url = https://github.com/Wool5443/Utils
+[submodule "String"]
+	path = String
+	url = https://github.com/Wool5443/String
