@@ -1,8 +1,5 @@
-#ifndef RECURSIVE_DESCENT_HPP
-#define RECURSIVE_DESCENT_HPP
+#pragma once
 
 #include "Tree.hpp"
 
-ErrorCode ParseExpression(Tree* tree, char* string);
-
-#endif
+ErrorCode ParseExpression(Tree* tree, String* string);
