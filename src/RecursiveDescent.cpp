@@ -66,12 +66,9 @@ TreeNodeResult _getD(const char** context);
 TreeNodeResult _getP(const char** context);
 TreeNodeResult _getN(const char** context);
 
-ErrorCode ParseExpression(Tree* tree, String* string)
+ErrorCode ParseExpression(Tree& tree, String& string)
 {
-    MyAssertSoft(tree, ERROR_NULLPTR);
-    MyAssertSoft(string, ERROR_NULLPTR);
-
-    const char* buf = string->buf;
+    const char* buf = string.buf;
     const char** context = &buf;
 
     TreeNodeResult root = _getE(context);
@@ -80,7 +77,7 @@ ErrorCode ParseExpression(Tree* tree, String* string)
 
     SyntaxAssert(*CUR_CHAR_PTR == '\0');
 
-    RETURN_ERROR(tree->Init(root.value));
+    RETURN_ERROR(tree.Init(root.value));
 
     return EVERYTHING_FINE;
 }
