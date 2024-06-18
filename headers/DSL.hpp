@@ -10,7 +10,7 @@ do                                                                      \
 } while (0)                                                                      
 
 #define NODE_TYPE(node) ((node)->value.type)
-#define NODE_NUMBER(node) ((node)->value.value.number)
-#define NODE_NAME(node) ((node)->value.value.name)
-#define NODE_OPERATION(node) ((node)->value.value.operation)
+#define NODE_NUMBER(node) ((node)->value.number)
+#define NODE_NAME(node) ((node)->value.name)
+#define NODE_OPERATION(node) ((node)->value.operation)
 #define NODE_PRIORITY(node) ((node)->value.priority)
