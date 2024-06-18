@@ -9,9 +9,9 @@ do                                                                      \
 {                                                                       \
     if (!(expression))                                                  \
     {                                                                   \
-        SetConsoleColor(stdout, COLOR_RED);                \
+        SetConsoleColor(stdout, COLOR_RED);                             \
         fprintf(stdout, "SYNTAX ERROR AT %s\n", CUR_CHAR_PTR);          \
-        SetConsoleColor(stdout, COLOR_WHITE);              \
+        SetConsoleColor(stdout, COLOR_WHITE);                           \
         __VA_ARGS__;                                                    \
         return ERROR_SYNTAX;                                            \
     }                                                                   \
@@ -22,9 +22,9 @@ do                                                                      \
 {                                                                       \
     if (!(expression))                                                  \
     {                                                                   \
-        SetConsoleColor(stdout, COLOR_RED);                \
+        SetConsoleColor(stdout, COLOR_RED);                             \
         fprintf(stdout, "SYNTAX ERROR AT %s\n", CUR_CHAR_PTR);          \
-        SetConsoleColor(stdout, COLOR_WHITE);              \
+        SetConsoleColor(stdout, COLOR_WHITE);                           \
         __VA_ARGS__;                                                    \
         return { poison, ERROR_SYNTAX };                                \
     }                                                                   \
@@ -46,13 +46,14 @@ do                                                                      \
 // x
 
 // G        -> S '\0'
-// S        -> {E | Symbol = E} '\n'
+// S        -> {E | Symbol = E} '\0'
 // E        -> T {['+', '-']T}*
 // T        -> D {['*', '/']D}*
 // D        -> P {'^'D}*
-// P        -> '(' E ')' | N
+// P        -> '(' E ')' | Id
 // Symbol   -> Name
 // Name     -> ALPHABET+ {DIGITS u ALPHABET}*
+// Id       -> Symbol | N
 // N        -> DIGITS+
 
 TreeNodeResult _getS     (const char** context);
@@ -62,6 +63,7 @@ TreeNodeResult _getD     (const char** context);
 TreeNodeResult _getP     (const char** context);
 TreeNodeResult _getSymbol(const char** context);
 TreeNodeResult _getName  (const char** context);
+TreeNodeResult _getId    (const char** context);
 TreeNodeResult _getN     (const char** context);
 
 ErrorCode ParseExpression(Tree& tree, String& string)
@@ -69,8 +71,7 @@ ErrorCode ParseExpression(Tree& tree, String& string)
     const char* buf = string.buf;
     const char** context = &buf;
 
-    // TreeNodeResult root = _getE(context);
-    TreeNodeResult root = _getSymbol(context);
+    TreeNodeResult root = _getS(context);
 
     RETURN_ERROR(root.error);
 
@@ -79,6 +80,41 @@ ErrorCode ParseExpression(Tree& tree, String& string)
     RETURN_ERROR(tree.Init(root.value));
 
     return EVERYTHING_FINE;
+}
+
+TreeNodeResult _getS(const char** context)
+{
+    MyAssertSoftResult(context, nullptr, ERROR_NULLPTR);
+
+    const char* assignmentCharPtr = strchr(CUR_CHAR_PTR, '=');
+
+    TreeNode* result = nullptr;
+
+    if (assignmentCharPtr)
+    {
+        CREATE_NODE_SAFE(symbol, _getSymbol(context), result->Delete());
+
+        SyntaxAssertResult(*CUR_CHAR_PTR == '=', nullptr, result->Delete());
+        CUR_CHAR_PTR++;
+
+        CREATE_NODE_SAFE(expression, _getE(context), result->Delete(); symbol->Delete());
+
+        CREATE_NODE_SAFE(_res, TreeNode::New({}, symbol, expression), symbol->Delete();
+                                                                      expression->Delete());
+        result = _res;
+        NODE_TYPE(result)      = OPERATION_TYPE;
+        NODE_OPERATION(result) = ASSIGN_OPERATION;
+        NODE_PRIORITY(result)  = ASSIGN_OPERATION_PRIORITY;
+    }
+    else
+    {
+        CREATE_NODE_SAFE(_res, _getE(context));
+        result = _res;
+    }
+
+    SyntaxAssertResult(*CUR_CHAR_PTR == '\0', nullptr);
+
+    return { result, EVERYTHING_FINE };
 }
 
 TreeNodeResult _getE(const char** context)
@@ -118,9 +154,9 @@ TreeNodeResult _getE(const char** context)
             return { nullptr, err };
         }
 
-        result->value.type = OPERATION_TYPE;
-        result->value.value.operation = op;
-        result->value.priority = ADD_OPERATION_PRIORITY;
+        NODE_TYPE(result)      = OPERATION_TYPE;
+        NODE_OPERATION(result) = op;
+        NODE_PRIORITY(result)  = ADD_OPERATION_PRIORITY;
     }
 
     return { result, EVERYTHING_FINE };
@@ -163,9 +199,9 @@ TreeNodeResult _getT(const char** context)
             return { nullptr, err };
         }
 
-        result->value.type = OPERATION_TYPE;
-        result->value.value.operation = op;
-        result->value.priority = MUL_OPERATION_PRIORITY;
+        NODE_TYPE(result)      = OPERATION_TYPE;
+        NODE_OPERATION(result) = op;
+        NODE_PRIORITY(result)  = MUL_OPERATION_PRIORITY;
     }
 
     return { result, EVERYTHING_FINE };
@@ -206,9 +242,9 @@ TreeNodeResult _getD(const char** context)
             return { nullptr, err };
         }
 
-        result->value.type = OPERATION_TYPE;
-        result->value.value.operation = POWER_OPERATION;
-        result->value.priority = POWER_OPERATION_PRIORITY;
+        NODE_TYPE(result)      = OPERATION_TYPE;
+        NODE_OPERATION(result) = POWER_OPERATION;
+        NODE_PRIORITY(result)  = POWER_OPERATION_PRIORITY;
     }
 
     return { result, EVERYTHING_FINE };
@@ -229,7 +265,7 @@ TreeNodeResult _getP(const char** context)
         return { result, EVERYTHING_FINE };
     }
 
-    return _getN(context);
+    return _getId(context);
 }
 
 TreeNodeResult _getSymbol(const char** context)
@@ -262,6 +298,16 @@ TreeNodeResult _getName(const char** context)
     return { result, EVERYTHING_FINE };
 }
 
+TreeNodeResult _getId(const char** context)
+{
+    MyAssertSoftResult(context, nullptr, ERROR_NULLPTR);
+
+    if (isalpha(*CUR_CHAR_PTR))
+        return _getName(context);
+
+    return _getN(context);
+}
+
 TreeNodeResult _getN(const char** context)
 {
     MyAssertSoftResult(context, nullptr, ERROR_NULLPTR);
@@ -273,12 +319,10 @@ TreeNodeResult _getN(const char** context)
 
     CUR_CHAR_PTR = endPtr;
 
-    TreeNodeResult nodeRes = TreeNode::New({});
-    RETURN_ERROR_RESULT(nodeRes, nullptr);
-    TreeNode* node = nodeRes.value;
+    CREATE_NODE_SAFE(result, TreeNode::New({}));
 
-    node->value.type = NUMBER_TYPE;
-    node->value.value.number = val;
+    NODE_TYPE(result)   = NUMBER_TYPE;
+    NODE_NUMBER(result) = val;
 
-    return { node, EVERYTHING_FINE };
+    return { result, EVERYTHING_FINE };
 }
