@@ -287,7 +287,19 @@ TreeNodeResult _getName(Context& context)
     NODE_TYPE(result) = NAME_TYPE;
     NODE_NAME(result) = name;
 
-    ListElemIndexResult findNameResult = context.symbolTable.
+    ListElemIndexResult findNameResult = context.symbolTable->Find({ name.buf, VARIABLE_SYMBOL });
+
+    if (findNameResult.error == ERROR_NOT_FOUND)
+    {
+        SymbolTableEntry symbol = {};
+        symbol.Create(&name, VARIABLE_SYMBOL);
+        ErrorCode err = context.symbolTable->PushBack(symbol);
+        if (err)
+        {
+            result->Delete();
+            return { nullptr, err };
+        }
+    }
 
     return { result, EVERYTHING_FINE };
 }

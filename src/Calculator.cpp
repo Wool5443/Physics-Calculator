@@ -3,6 +3,20 @@
 
 double _recEvaluate(const TreeNode* node);
 
+ErrorCode SymbolTableEntry::Create(String* name, SymbolType type)
+{
+    RETURN_ERROR(this->name.Create(name));
+    this->type = type;
+
+    return EVERYTHING_FINE;
+}
+
+void SymbolTableEntry::Destructor()
+{
+    this->name.Destructor();
+    this->type = (SymbolType)-1;
+}
+
 double EvaluateTree(const Tree& tree)
 {
     return _recEvaluate(tree.root);

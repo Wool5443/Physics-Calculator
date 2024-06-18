@@ -13,6 +13,7 @@ FILE(MAKE_DIRECTORY treeLog/img/)
 FILE(MAKE_DIRECTORY treeLog/dot/)
 FILE(MAKE_DIRECTORY listLog/)
 FILE(MAKE_DIRECTORY listLog/img/)
+FILE(MAKE_DIRECTORY listLog/txt/)
 FILE(MAKE_DIRECTORY listLog/dot/)
 
 FILE(GLOB SOURCES_CPP src/*.cpp Utils/*.cpp Tree/src/*.cpp String/src/*.cpp LinkedList/src/*.cpp)

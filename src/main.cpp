@@ -1,5 +1,6 @@
 #include <string.h>
 #include <signal.h>
+#include "PrettyDumpList.hpp"
 #include "RecursiveDescent.hpp"
 #include "Calculator.hpp"
 
@@ -36,6 +37,8 @@ int main()
     ON_ERROR(err);
 
     #ifndef NDEBUG
+    err = StartHtmlLogging(LIST_LOG_FOLDER);
+    ON_ERROR(err, symbolTable.Destructor());
     err = Tree::StartLogging(TREE_LOG_FOLDER);
     ON_ERROR(err, symbolTable.Destructor());
     #endif
@@ -64,6 +67,7 @@ int main()
         printf("%s = %lg\n", expression.buf, result);
 
         #ifndef NDEBUG
+        DumpList(&symbolTable, symbolTable.Verify());
         tree.Dump();
         #endif
         tree.Destructor();
@@ -73,6 +77,7 @@ int main()
     symbolTable.Destructor();
 
     #ifndef NDEBUG
+    EndHtmlLogging();
     Tree::EndLogging();
     #endif
 
