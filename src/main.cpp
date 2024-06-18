@@ -3,7 +3,19 @@
 #include "RecursiveDescent.hpp"
 #include "Calculator.hpp"
 
-static const char* LOG_FOLDER = "../log";
+#define ON_ERROR(err, ...)                  \
+do                                          \
+{                                           \
+    if (err)                                \
+    {                                       \
+        PRINT_ERROR(err);                   \
+        __VA_ARGS__;                        \
+        return err;                         \
+    }                                       \
+} while (0)
+
+static const char* TREE_LOG_FOLDER = "../treeLog";
+static const char* LIST_LOG_FOLDER = "../listLog";
 
 constexpr size_t MAX_LINE_SIZE = 512;
 
@@ -19,41 +31,33 @@ int main()
 
     ErrorCode err = EVERYTHING_FINE; 
 
+    LinkedList symbolTable = {};
+    err = symbolTable.Init(LIST_LOG_FOLDER);
+    ON_ERROR(err);
+
     #ifndef NDEBUG
-    err = Tree::StartLogging(LOG_FOLDER);
+    err = Tree::StartLogging(TREE_LOG_FOLDER);
+    ON_ERROR(err, symbolTable.Destructor());
     #endif
 
     Tree tree = {};
     String expression = {};
 
     err = expression.Create(MAX_LINE_SIZE);
-    if (err)
-    PRINT_ERROR(err);
+    ON_ERROR(err, symbolTable.Destructor());
 
     while (fgets(expression.buf, MAX_LINE_SIZE, stdin))
     {
         err = expression.Filter();
-        if (err)
-        {
-            PRINT_ERROR(err);
-            tree.Destructor();
-            expression.Destructor();
-            return err;
-        }
+        ON_ERROR(err, symbolTable.Destructor(); expression.Destructor());
         expression.length = strlen(expression.buf);
 
         if (expression.length == 0)
             continue;
 
-        err = ParseExpression(tree, expression);
+        err = ParseExpression(tree, symbolTable, expression);
 
-        if (err)
-        {
-            PRINT_ERROR(err);
-            tree.Destructor();
-            expression.Destructor();
-            return err;
-        }
+        ON_ERROR(err, symbolTable.Destructor(); tree.Destructor(); expression.Destructor());
 
         double result = EvaluateTree(tree);
 
@@ -66,6 +70,7 @@ int main()
     }
 
     expression.Destructor();
+    symbolTable.Destructor();
 
     #ifndef NDEBUG
     Tree::EndLogging();

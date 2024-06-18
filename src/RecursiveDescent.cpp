@@ -30,7 +30,7 @@ do                                                                      \
     }                                                                   \
 } while (0)
 
-#define CUR_CHAR_PTR (*context)
+#define CUR_CHAR_PTR (context.expression)
 
 #define SKIP_ALPHA()                                                    \
 do                                                                      \
@@ -56,20 +56,25 @@ do                                                                      \
 // Id       -> Symbol | N
 // N        -> DIGITS+
 
-TreeNodeResult _getS     (const char** context);
-TreeNodeResult _getE     (const char** context);
-TreeNodeResult _getT     (const char** context);
-TreeNodeResult _getD     (const char** context);
-TreeNodeResult _getP     (const char** context);
-TreeNodeResult _getSymbol(const char** context);
-TreeNodeResult _getName  (const char** context);
-TreeNodeResult _getId    (const char** context);
-TreeNodeResult _getN     (const char** context);
-
-ErrorCode ParseExpression(Tree& tree, String& string)
+struct Context
 {
-    const char* buf = string.buf;
-    const char** context = &buf;
+    const char* expression;
+    LinkedList* symbolTable;
+};
+
+TreeNodeResult _getS     (Context& context);
+TreeNodeResult _getE     (Context& context);
+TreeNodeResult _getT     (Context& context);
+TreeNodeResult _getD     (Context& context);
+TreeNodeResult _getP     (Context& context);
+TreeNodeResult _getSymbol(Context& context);
+TreeNodeResult _getName  (Context& context);
+TreeNodeResult _getId    (Context& context);
+TreeNodeResult _getN     (Context& context);
+
+ErrorCode ParseExpression(Tree& tree, LinkedList& symbolTable, String& string)
+{
+    Context context = { string.buf, &symbolTable };
 
     TreeNodeResult root = _getS(context);
 
@@ -82,10 +87,8 @@ ErrorCode ParseExpression(Tree& tree, String& string)
     return EVERYTHING_FINE;
 }
 
-TreeNodeResult _getS(const char** context)
+TreeNodeResult _getS(Context& context)
 {
-    MyAssertSoftResult(context, nullptr, ERROR_NULLPTR);
-
     const char* assignmentCharPtr = strchr(CUR_CHAR_PTR, '=');
 
     TreeNode* result = nullptr;
@@ -117,10 +120,8 @@ TreeNodeResult _getS(const char** context)
     return { result, EVERYTHING_FINE };
 }
 
-TreeNodeResult _getE(const char** context)
+TreeNodeResult _getE(Context& context)
 {
-    MyAssertSoftResult(context, nullptr, ERROR_NULLPTR);
-
     CREATE_NODE_SAFE(result, _getT(context));
 
     while (*CUR_CHAR_PTR == '+' || *CUR_CHAR_PTR == '-')
@@ -162,10 +163,8 @@ TreeNodeResult _getE(const char** context)
     return { result, EVERYTHING_FINE };
 }
 
-TreeNodeResult _getT(const char** context)
+TreeNodeResult _getT(Context& context)
 {
-    MyAssertSoftResult(context, nullptr, ERROR_NULLPTR);
-
     CREATE_NODE_SAFE(result, _getD(context));
 
     while (*CUR_CHAR_PTR == '*' || *CUR_CHAR_PTR == '/')
@@ -207,10 +206,8 @@ TreeNodeResult _getT(const char** context)
     return { result, EVERYTHING_FINE };
 }
 
-TreeNodeResult _getD(const char** context)
+TreeNodeResult _getD(Context& context)
 {
-    MyAssertSoftResult(context, nullptr, ERROR_NULLPTR);
-
     CREATE_NODE_SAFE(result, _getP(context));
 
     while (*CUR_CHAR_PTR == '^')
@@ -250,9 +247,8 @@ TreeNodeResult _getD(const char** context)
     return { result, EVERYTHING_FINE };
 }
 
-TreeNodeResult _getP(const char** context)
+TreeNodeResult _getP(Context& context)
 {
-    MyAssertSoftResult(context, nullptr, ERROR_NULLPTR);
     if (*CUR_CHAR_PTR == '(')
     {
         CUR_CHAR_PTR++;
@@ -268,17 +264,13 @@ TreeNodeResult _getP(const char** context)
     return _getId(context);
 }
 
-TreeNodeResult _getSymbol(const char** context)
+TreeNodeResult _getSymbol(Context& context)
 {
-    MyAssertSoftResult(context, nullptr, ERROR_NULLPTR);
-
     return _getName(context);
 }
 
-TreeNodeResult _getName(const char** context)
+TreeNodeResult _getName(Context& context)
 {
-    MyAssertSoftResult(context, nullptr, ERROR_NULLPTR);
-
     SyntaxAssertResult(isalpha(*CUR_CHAR_PTR), nullptr);
 
     String name = {};
@@ -295,23 +287,21 @@ TreeNodeResult _getName(const char** context)
     NODE_TYPE(result) = NAME_TYPE;
     NODE_NAME(result) = name;
 
+    ListElemIndexResult findNameResult = context.symbolTable.
+
     return { result, EVERYTHING_FINE };
 }
 
-TreeNodeResult _getId(const char** context)
+TreeNodeResult _getId(Context& context)
 {
-    MyAssertSoftResult(context, nullptr, ERROR_NULLPTR);
-
     if (isalpha(*CUR_CHAR_PTR))
         return _getName(context);
 
     return _getN(context);
 }
 
-TreeNodeResult _getN(const char** context)
+TreeNodeResult _getN(Context& context)
 {
-    MyAssertSoftResult(context, nullptr, ERROR_NULLPTR);
-
     char* endPtr = nullptr;
 
     double val = strtod(CUR_CHAR_PTR, &endPtr);
