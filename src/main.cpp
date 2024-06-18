@@ -1,4 +1,5 @@
 #include <string.h>
+#include <signal.h>
 #include "RecursiveDescent.hpp"
 #include "Calculator.hpp"
 
@@ -6,8 +7,16 @@ static const char* LOG_FOLDER = "../log";
 
 constexpr size_t MAX_LINE_SIZE = 512;
 
+void sigintFunction(int signum);
+void sigintFunction(int signum)
+{
+    printf("\nTo exit programm press Ctrl+D:%d\n", signum);
+}
+
 int main()
 {
+    signal(SIGINT, sigintFunction);
+
     ErrorCode err = EVERYTHING_FINE; 
 
     #ifndef NDEBUG
