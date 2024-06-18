@@ -5,4 +5,4 @@
 #include "Tree.hpp"
 #include "LinkedList.hpp"
 
-double EvaluateTree(const Tree& tree);
+ErrorCode EvaluateTree(const Tree& tree, LinkedList& symbolTable, const String& expression);

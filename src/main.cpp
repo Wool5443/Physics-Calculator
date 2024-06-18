@@ -62,9 +62,9 @@ int main()
 
         ON_ERROR(err, symbolTable.Destructor(); tree.Destructor(); expression.Destructor());
 
-        double result = EvaluateTree(tree);
+        err = EvaluateTree(tree, symbolTable, expression);
 
-        printf("%s = %lg\n", expression.buf, result);
+        ON_ERROR(err, symbolTable.Destructor(); tree.Destructor(); expression.Destructor());
 
         #ifndef NDEBUG
         DumpList(&symbolTable, symbolTable.Verify());

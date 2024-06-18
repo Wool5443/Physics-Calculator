@@ -1,7 +1,9 @@
 #include "Calculator.hpp"
 #include "DSL.hpp"
 
-double _recEvaluate(const TreeNode* node);
+double _recEvaluate(const TreeNode* node, LinkedList& symbolTable);
+ErrorCode _assign(const TreeNode* node, LinkedList& symbolTable);
+double _getSymbolValue(const TreeNode* node, LinkedList& symbolTable);
 
 ErrorCode SymbolTableEntry::Create(String* name, SymbolType type)
 {
@@ -14,15 +16,25 @@ ErrorCode SymbolTableEntry::Create(String* name, SymbolType type)
 void SymbolTableEntry::Destructor()
 {
     this->name.Destructor();
-    this->type = (SymbolType)-1;
+    this->type = ANY_SYMBOL;
 }
 
-double EvaluateTree(const Tree& tree)
+ErrorCode EvaluateTree(const Tree& tree, LinkedList& symbolTable, const String& expression)
 {
-    return _recEvaluate(tree.root);
+    TreeNode* root = tree.root;
+
+    if (NODE_TYPE(root) == OPERATION_TYPE &&
+        NODE_OPERATION(root) == ASSIGN_OPERATION)
+        return _assign(root, symbolTable);
+
+    double value = _recEvaluate(tree.root, symbolTable);
+
+    printf("%s = %lg\n", expression.buf, value);
+
+    return EVERYTHING_FINE;
 }
 
-double _recEvaluate(const TreeNode* node)
+double _recEvaluate(const TreeNode* node, LinkedList& symbolTable)
 {
     MyAssertSoft(node, ERROR_NULLPTR, return NAN);
 
@@ -30,6 +42,8 @@ double _recEvaluate(const TreeNode* node)
     {
         case NUMBER_TYPE:
             return NODE_NUMBER(node);
+        case NAME_TYPE:
+            return _getSymbolValue(node, symbolTable);
         case OPERATION_TYPE:
             switch (NODE_OPERATION(node))
             {
@@ -40,12 +54,12 @@ case name:                                                                  \
     double a, b;                                                            \
                                                                             \
     if (!node->left) return NAN;                                            \
-    a = _recEvaluate(node->left);                                           \
+    a = _recEvaluate(node->left, symbolTable);                              \
                                                                             \
     if (!hasOneArg)                                                         \
     {                                                                       \
         if (!node->right) return NAN;                                       \
-        b = _recEvaluate(node->right);                                      \
+        b = _recEvaluate(node->right, symbolTable);                         \
     }                                                                       \
                                                                             \
     return code;                                                            \
@@ -63,4 +77,32 @@ case name:                                                                  \
     }
 
     return NAN;
+}
+
+ErrorCode _assign(const TreeNode* node, LinkedList& symbolTable)
+{
+    MyAssertSoft(node, ERROR_NULLPTR);
+
+    double value = _recEvaluate(node->right, symbolTable);
+
+    ListElemIndexResult indexRes = symbolTable.Find({ NODE_NAME(node->left).buf, ANY_SYMBOL });
+
+    if (indexRes.error)
+        return indexRes.error;
+    else
+        symbolTable.data[indexRes.value].value = value;
+
+    return EVERYTHING_FINE;
+}
+
+double _getSymbolValue(const TreeNode* node, LinkedList& symbolTable)
+{
+    MyAssertSoft(node, ERROR_NULLPTR);
+
+    ListElemIndexResult indexRes = symbolTable.Find({ NODE_NAME(node).buf, ANY_SYMBOL });
+
+    if (indexRes.error == ERROR_NOT_FOUND)
+        return NAN;
+
+    return symbolTable.data[indexRes.value].value;
 }

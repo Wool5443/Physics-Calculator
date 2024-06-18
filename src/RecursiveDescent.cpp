@@ -287,7 +287,7 @@ TreeNodeResult _getName(Context& context)
     NODE_TYPE(result) = NAME_TYPE;
     NODE_NAME(result) = name;
 
-    ListElemIndexResult findNameResult = context.symbolTable->Find({ name.buf, VARIABLE_SYMBOL });
+    ListElemIndexResult findNameResult = context.symbolTable->Find({ name.buf, ANY_SYMBOL });
 
     if (findNameResult.error == ERROR_NOT_FOUND)
     {
