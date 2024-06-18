@@ -1,5 +1,6 @@
 #include <ctype.h>
 #include <string.h>
+#include "DSL.hpp"
 #include "RecursiveDescent.hpp"
 #include "String.hpp"
 
@@ -29,6 +30,8 @@ do                                                                      \
     }                                                                   \
 } while (0)
 
+#define CUR_CHAR_PTR (*context)
+
 #define SKIP_ALPHA()                                                    \
 do                                                                      \
 {                                                                       \
@@ -36,42 +39,38 @@ do                                                                      \
         CUR_CHAR_PTR++;                                                 \
 } while (0)
 
-#define GET_NODE_SAFE(name, expression, ...)                            \
-TreeNode* name;                                                         \
-do                                                                      \
-{                                                                       \
-    TreeNodeResult _TEMP = (expression);                                \
-    RETURN_ERROR_RESULT(_TEMP, nullptr, __VA_ARGS__);                   \
-    name = _TEMP.value;                                                 \
-} while (0)                                                                      
-
-#define CUR_CHAR_PTR (*context)
-
 // x = 56 + 45 ^ 2
 // 56 + 45 ^ 2
 
 // 56 + (23 + 5 * 8) ^ (45 - 3) ^ 3
 // x
 
-// G        -> {E | Symbol = E} '\n'
+// G        -> S '\0'
+// S        -> {E | Symbol = E} '\n'
 // E        -> T {['+', '-']T}*
 // T        -> D {['*', '/']D}*
 // D        -> P {'^'D}*
 // P        -> '(' E ')' | N
-// N        -> ['0' - '9']+
+// Symbol   -> Name
+// Name     -> ALPHABET+ {DIGITS u ALPHABET}*
+// N        -> DIGITS+
 
-TreeNodeResult _getE(const char** context);
-TreeNodeResult _getT(const char** context);
-TreeNodeResult _getD(const char** context);
-TreeNodeResult _getP(const char** context);
-TreeNodeResult _getN(const char** context);
+TreeNodeResult _getS     (const char** context);
+TreeNodeResult _getE     (const char** context);
+TreeNodeResult _getT     (const char** context);
+TreeNodeResult _getD     (const char** context);
+TreeNodeResult _getP     (const char** context);
+TreeNodeResult _getSymbol(const char** context);
+TreeNodeResult _getName  (const char** context);
+TreeNodeResult _getN     (const char** context);
 
 ErrorCode ParseExpression(Tree& tree, String& string)
 {
     const char* buf = string.buf;
     const char** context = &buf;
 
-    TreeNodeResult root = _getE(context);
+    // TreeNodeResult root = _getE(context);
+    TreeNodeResult root = _getSymbol(context);
 
     RETURN_ERROR(root.error);
 
@@ -86,7 +85,7 @@ TreeNodeResult _getE(const char** context)
 {
     MyAssertSoftResult(context, nullptr, ERROR_NULLPTR);
 
-    GET_NODE_SAFE(result, _getT(context));
+    CREATE_NODE_SAFE(result, _getT(context));
 
     while (*CUR_CHAR_PTR == '+' || *CUR_CHAR_PTR == '-')
     {
@@ -94,10 +93,10 @@ TreeNodeResult _getE(const char** context)
 
         CUR_CHAR_PTR++;
 
-        GET_NODE_SAFE(nextT, _getT(context), result->Delete());
+        CREATE_NODE_SAFE(nextT, _getT(context), result->Delete());
 
-        GET_NODE_SAFE(resCopy, TreeNode::New(result->value, result->left, result->right),
-                      result->Delete(), nextT->Delete());
+        CREATE_NODE_SAFE(resCopy, TreeNode::New(result->value, result->left, result->right),
+            result->Delete(), nextT->Delete());
 
         ErrorCode err = result->SetLeft(resCopy);
         if (err)
@@ -119,9 +118,9 @@ TreeNodeResult _getE(const char** context)
             return { nullptr, err };
         }
 
-        result->value.type            = OPERATION_TYPE;
+        result->value.type = OPERATION_TYPE;
         result->value.value.operation = op;
-        result->value.priority        = ADD_OPERATION_PRIORITY;
+        result->value.priority = ADD_OPERATION_PRIORITY;
     }
 
     return { result, EVERYTHING_FINE };
@@ -131,7 +130,7 @@ TreeNodeResult _getT(const char** context)
 {
     MyAssertSoftResult(context, nullptr, ERROR_NULLPTR);
 
-    GET_NODE_SAFE(result, _getD(context));
+    CREATE_NODE_SAFE(result, _getD(context));
 
     while (*CUR_CHAR_PTR == '*' || *CUR_CHAR_PTR == '/')
     {
@@ -139,10 +138,10 @@ TreeNodeResult _getT(const char** context)
 
         CUR_CHAR_PTR++;
 
-        GET_NODE_SAFE(nextD, _getD(context), result->Delete());
+        CREATE_NODE_SAFE(nextD, _getD(context), result->Delete());
 
-        GET_NODE_SAFE(resCopy, TreeNode::New(result->value, result->left, result->right),
-                      result->Delete(), nextD->Delete());
+        CREATE_NODE_SAFE(resCopy, TreeNode::New(result->value, result->left, result->right),
+            result->Delete(), nextD->Delete());
 
         ErrorCode err = result->SetLeft(resCopy);
         if (err)
@@ -164,9 +163,9 @@ TreeNodeResult _getT(const char** context)
             return { nullptr, err };
         }
 
-        result->value.type            = OPERATION_TYPE;
+        result->value.type = OPERATION_TYPE;
         result->value.value.operation = op;
-        result->value.priority        = MUL_OPERATION_PRIORITY;
+        result->value.priority = MUL_OPERATION_PRIORITY;
     }
 
     return { result, EVERYTHING_FINE };
@@ -176,16 +175,16 @@ TreeNodeResult _getD(const char** context)
 {
     MyAssertSoftResult(context, nullptr, ERROR_NULLPTR);
 
-    GET_NODE_SAFE(result, _getP(context));
+    CREATE_NODE_SAFE(result, _getP(context));
 
     while (*CUR_CHAR_PTR == '^')
     {
         CUR_CHAR_PTR++;
 
-        GET_NODE_SAFE(nextD, _getD(context), result->Delete());
+        CREATE_NODE_SAFE(nextD, _getD(context), result->Delete());
 
-        GET_NODE_SAFE(resCopy, TreeNode::New(result->value, result->left, result->right),
-                      result->Delete(), nextD->Delete());
+        CREATE_NODE_SAFE(resCopy, TreeNode::New(result->value, result->left, result->right),
+            result->Delete(), nextD->Delete());
 
         ErrorCode err = result->SetLeft(resCopy);
         if (err)
@@ -207,9 +206,9 @@ TreeNodeResult _getD(const char** context)
             return { nullptr, err };
         }
 
-        result->value.type            = OPERATION_TYPE;
+        result->value.type = OPERATION_TYPE;
         result->value.value.operation = POWER_OPERATION;
-        result->value.priority        = POWER_OPERATION_PRIORITY;
+        result->value.priority = POWER_OPERATION_PRIORITY;
     }
 
     return { result, EVERYTHING_FINE };
@@ -222,7 +221,7 @@ TreeNodeResult _getP(const char** context)
     {
         CUR_CHAR_PTR++;
 
-        GET_NODE_SAFE(result, _getE(context));
+        CREATE_NODE_SAFE(result, _getE(context));
 
         SyntaxAssertResult(*CUR_CHAR_PTR == ')', nullptr, result->Delete());
         CUR_CHAR_PTR++;
@@ -231,6 +230,36 @@ TreeNodeResult _getP(const char** context)
     }
 
     return _getN(context);
+}
+
+TreeNodeResult _getSymbol(const char** context)
+{
+    MyAssertSoftResult(context, nullptr, ERROR_NULLPTR);
+
+    return _getName(context);
+}
+
+TreeNodeResult _getName(const char** context)
+{
+    MyAssertSoftResult(context, nullptr, ERROR_NULLPTR);
+
+    SyntaxAssertResult(isalpha(*CUR_CHAR_PTR), nullptr);
+
+    String name = {};
+    name.Create();
+
+    name.Append(*(CUR_CHAR_PTR++));
+
+    while (isalnum(*CUR_CHAR_PTR) || *CUR_CHAR_PTR == '_')
+    {
+        name.Append(*(CUR_CHAR_PTR++));
+    }
+
+    CREATE_NODE_SAFE(result, TreeNode::New({}));
+    NODE_TYPE(result) = NAME_TYPE;
+    NODE_NAME(result) = name;
+
+    return { result, EVERYTHING_FINE };
 }
 
 TreeNodeResult _getN(const char** context)

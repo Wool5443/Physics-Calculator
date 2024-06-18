@@ -8,24 +8,43 @@ constexpr size_t MAX_LINE_SIZE = 512;
 
 int main()
 {
+    ErrorCode err = EVERYTHING_FINE; 
+
     #ifndef NDEBUG
-    PRINT_ERROR(Tree::StartLogging(LOG_FOLDER));
+    err = Tree::StartLogging(LOG_FOLDER);
     #endif
 
     Tree tree = {};
     String expression = {};
-    ErrorCode err = EVERYTHING_FINE; 
-    expression.Create(MAX_LINE_SIZE);
 
-    while (true)
+    err = expression.Create(MAX_LINE_SIZE);
+    if (err)
+    PRINT_ERROR(err);
+
+    while (fgets(expression.buf, MAX_LINE_SIZE, stdin))
     {
-        fgets(expression.buf, MAX_LINE_SIZE, stdin);
-        expression.Filter();
+        err = expression.Filter();
+        if (err)
+        {
+            PRINT_ERROR(err);
+            tree.Destructor();
+            expression.Destructor();
+            return err;
+        }
+        expression.length = strlen(expression.buf);
 
-        if (strlen(expression.buf) == 0)
-            break;
+        if (expression.length == 0)
+            continue;
 
         err = ParseExpression(tree, expression);
+
+        if (err)
+        {
+            PRINT_ERROR(err);
+            tree.Destructor();
+            expression.Destructor();
+            return err;
+        }
 
         double result = EvaluateTree(tree);
 
@@ -38,6 +57,10 @@ int main()
     }
 
     expression.Destructor();
+
+    #ifndef NDEBUG
+    Tree::EndLogging();
+    #endif
 
     return 0;
 }

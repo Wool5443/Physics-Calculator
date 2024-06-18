@@ -7,3 +7,6 @@
 [submodule "String"]
 	path = String
 	url = https://github.com/Wool5443/String
+[submodule "LinkedList"]
+	path = LinkedList
+	url = https://github.com/Wool5443/LinkedList
