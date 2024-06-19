@@ -3,9 +3,10 @@
 #include "Calculator.hpp"
 #include "DSL.hpp"
 
-double _recEvaluate(const TreeNode* node, LinkedList& symbolTable);
-Error _assign(const TreeNode* node, LinkedList& symbolTable);
-double _getSymbolValue(const TreeNode* node, LinkedList& symbolTable);
+static Error _evaluateTree(const Tree& tree, LinkedList& symbolTable, const String& expression);
+static double _recEvaluate(const TreeNode* node, LinkedList& symbolTable);
+static Error _assign(const TreeNode* node, LinkedList& symbolTable);
+static double _getSymbolValue(const TreeNode* node, LinkedList& symbolTable);
 
 #define ON_ERROR(err, ...)                  \
 do                                          \
@@ -55,7 +56,7 @@ Error Run(const char* listLogFolder, const char* treeLogFolder)
 
         ON_ERROR(err, symbolTable.Destructor(); tree.Destructor(); expression.Destructor());
 
-        err = EvaluateTree(tree, symbolTable, expression);
+        err = _evaluateTree(tree, symbolTable, expression);
 
         ON_ERROR(err, symbolTable.Destructor(); tree.Destructor(); expression.Destructor());
 
@@ -91,7 +92,7 @@ void SymbolTableEntry::Destructor()
     this->type = ANY_SYMBOL;
 }
 
-Error EvaluateTree(const Tree& tree, LinkedList& symbolTable, const String& expression)
+static Error _evaluateTree(const Tree& tree, LinkedList& symbolTable, const String& expression)
 {
     TreeNode* root = tree.root;
 
@@ -106,7 +107,7 @@ Error EvaluateTree(const Tree& tree, LinkedList& symbolTable, const String& expr
     return Error();
 }
 
-double _recEvaluate(const TreeNode* node, LinkedList& symbolTable)
+static double _recEvaluate(const TreeNode* node, LinkedList& symbolTable)
 {
     SoftAssert(node, ERROR_NULLPTR, return NAN);
 
@@ -151,7 +152,7 @@ case name:                                                                  \
     return NAN;
 }
 
-Error _assign(const TreeNode* node, LinkedList& symbolTable)
+static Error _assign(const TreeNode* node, LinkedList& symbolTable)
 {
     SoftAssert(node, ERROR_NULLPTR);
 
