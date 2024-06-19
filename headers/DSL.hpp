@@ -5,7 +5,7 @@ TreeNode* name;                                                         \
 do                                                                      \
 {                                                                       \
     TreeNodeResult _TEMP = (expression);                                \
-    RETURN_ERROR_RESULT(_TEMP, nullptr, __VA_ARGS__);                   \
+    RETURN_RESULT(_TEMP);                                               \
     name = _TEMP.value;                                                 \
 } while (0)                                                                      
 

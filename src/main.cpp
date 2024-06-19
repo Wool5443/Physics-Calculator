@@ -1,6 +1,5 @@
 #include <string.h>
 #include <signal.h>
-#include "PrettyDumpList.hpp"
 #include "RecursiveDescent.hpp"
 #include "Calculator.hpp"
 
@@ -9,7 +8,7 @@ do                                          \
 {                                           \
     if (err)                                \
     {                                       \
-        PRINT_ERROR(err);                   \
+        err.Print();                        \
         __VA_ARGS__;                        \
         return err;                         \
     }                                       \
@@ -30,14 +29,14 @@ int main()
 {
     signal(SIGINT, sigintFunction);
 
-    ErrorCode err = EVERYTHING_FINE; 
+    Error err = Error(); 
 
     LinkedList symbolTable = {};
-    err = symbolTable.Init(LIST_LOG_FOLDER);
+    err = symbolTable.Init();
     ON_ERROR(err);
 
     #ifndef NDEBUG
-    err = StartHtmlLogging(LIST_LOG_FOLDER);
+    err = symbolTable.StartLogging(LIST_LOG_FOLDER);
     ON_ERROR(err, symbolTable.Destructor());
     err = Tree::StartLogging(TREE_LOG_FOLDER);
     ON_ERROR(err, symbolTable.Destructor());
@@ -67,7 +66,7 @@ int main()
         ON_ERROR(err, symbolTable.Destructor(); tree.Destructor(); expression.Destructor());
 
         #ifndef NDEBUG
-        DumpList(&symbolTable, symbolTable.Verify());
+        symbolTable.Dump();
         tree.Dump();
         #endif
         tree.Destructor();
@@ -77,7 +76,7 @@ int main()
     symbolTable.Destructor();
 
     #ifndef NDEBUG
-    EndHtmlLogging();
+    symbolTable.EndLogging();
     Tree::EndLogging();
     #endif
 

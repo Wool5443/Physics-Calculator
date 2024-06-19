@@ -9,11 +9,11 @@ do                                                                      \
 {                                                                       \
     if (!(expression))                                                  \
     {                                                                   \
-        SetConsoleColor(stdout, COLOR_RED);                             \
+        SetConsoleColor(stdout, ConsoleColor::RED);                     \
         fprintf(stdout, "SYNTAX ERROR AT %s\n", CUR_CHAR_PTR);          \
-        SetConsoleColor(stdout, COLOR_WHITE);                           \
+        SetConsoleColor(stdout, ConsoleColor::WHITE);                   \
         __VA_ARGS__;                                                    \
-        return ERROR_SYNTAX;                                            \
+        return CREATE_ERROR(ERROR_SYNTAX);                              \
     }                                                                   \
 } while (0)
 
@@ -22,11 +22,11 @@ do                                                                      \
 {                                                                       \
     if (!(expression))                                                  \
     {                                                                   \
-        SetConsoleColor(stdout, COLOR_RED);                             \
+        SetConsoleColor(stdout, ConsoleColor::RED);                     \
         fprintf(stdout, "SYNTAX ERROR AT %s\n", CUR_CHAR_PTR);          \
-        SetConsoleColor(stdout, COLOR_WHITE);                           \
+        SetConsoleColor(stdout, ConsoleColor::WHITE);                   \
         __VA_ARGS__;                                                    \
-        return { poison, ERROR_SYNTAX };                                \
+        return { poison, CREATE_ERROR(ERROR_SYNTAX) };                  \
     }                                                                   \
 } while (0)
 
@@ -72,7 +72,7 @@ TreeNodeResult _getName  (Context& context);
 TreeNodeResult _getId    (Context& context);
 TreeNodeResult _getN     (Context& context);
 
-ErrorCode ParseExpression(Tree& tree, LinkedList& symbolTable, String& string)
+Error ParseExpression(Tree& tree, LinkedList& symbolTable, String& string)
 {
     Context context = { string.buf, &symbolTable };
 
@@ -84,7 +84,7 @@ ErrorCode ParseExpression(Tree& tree, LinkedList& symbolTable, String& string)
 
     RETURN_ERROR(tree.Init(root.value));
 
-    return EVERYTHING_FINE;
+    return Error();
 }
 
 TreeNodeResult _getS(Context& context)
@@ -117,7 +117,7 @@ TreeNodeResult _getS(Context& context)
 
     SyntaxAssertResult(*CUR_CHAR_PTR == '\0', nullptr);
 
-    return { result, EVERYTHING_FINE };
+    return { result, Error() };
 }
 
 TreeNodeResult _getE(Context& context)
@@ -135,7 +135,7 @@ TreeNodeResult _getE(Context& context)
         CREATE_NODE_SAFE(resCopy, TreeNode::New(result->value, result->left, result->right),
             result->Delete(), nextT->Delete());
 
-        ErrorCode err = result->SetLeft(resCopy);
+        Error err = result->SetLeft(resCopy);
         if (err)
         {
             result->Delete();
@@ -160,7 +160,7 @@ TreeNodeResult _getE(Context& context)
         NODE_PRIORITY(result)  = ADD_OPERATION_PRIORITY;
     }
 
-    return { result, EVERYTHING_FINE };
+    return { result, Error() };
 }
 
 TreeNodeResult _getT(Context& context)
@@ -178,7 +178,7 @@ TreeNodeResult _getT(Context& context)
         CREATE_NODE_SAFE(resCopy, TreeNode::New(result->value, result->left, result->right),
             result->Delete(), nextD->Delete());
 
-        ErrorCode err = result->SetLeft(resCopy);
+        Error err = result->SetLeft(resCopy);
         if (err)
         {
             result->Delete();
@@ -203,7 +203,7 @@ TreeNodeResult _getT(Context& context)
         NODE_PRIORITY(result)  = MUL_OPERATION_PRIORITY;
     }
 
-    return { result, EVERYTHING_FINE };
+    return { result, Error() };
 }
 
 TreeNodeResult _getD(Context& context)
@@ -219,7 +219,7 @@ TreeNodeResult _getD(Context& context)
         CREATE_NODE_SAFE(resCopy, TreeNode::New(result->value, result->left, result->right),
             result->Delete(), nextD->Delete());
 
-        ErrorCode err = result->SetLeft(resCopy);
+        Error err = result->SetLeft(resCopy);
         if (err)
         {
             result->Delete();
@@ -244,7 +244,7 @@ TreeNodeResult _getD(Context& context)
         NODE_PRIORITY(result)  = POWER_OPERATION_PRIORITY;
     }
 
-    return { result, EVERYTHING_FINE };
+    return { result, Error() };
 }
 
 TreeNodeResult _getP(Context& context)
@@ -258,7 +258,7 @@ TreeNodeResult _getP(Context& context)
         SyntaxAssertResult(*CUR_CHAR_PTR == ')', nullptr, result->Delete());
         CUR_CHAR_PTR++;
 
-        return { result, EVERYTHING_FINE };
+        return { result, Error() };
     }
 
     return _getId(context);
@@ -293,7 +293,7 @@ TreeNodeResult _getName(Context& context)
     {
         SymbolTableEntry symbol = {};
         symbol.Create(&name, VARIABLE_SYMBOL);
-        ErrorCode err = context.symbolTable->PushBack(symbol);
+        Error err = context.symbolTable->PushBack(symbol);
         if (err)
         {
             result->Delete();
@@ -301,7 +301,7 @@ TreeNodeResult _getName(Context& context)
         }
     }
 
-    return { result, EVERYTHING_FINE };
+    return { result, Error() };
 }
 
 TreeNodeResult _getId(Context& context)
@@ -326,5 +326,5 @@ TreeNodeResult _getN(Context& context)
     NODE_TYPE(result)   = NUMBER_TYPE;
     NODE_NUMBER(result) = val;
 
-    return { result, EVERYTHING_FINE };
+    return { result, Error() };
 }

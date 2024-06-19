@@ -16,15 +16,17 @@ FILE(MAKE_DIRECTORY listLog/img/)
 FILE(MAKE_DIRECTORY listLog/txt/)
 FILE(MAKE_DIRECTORY listLog/dot/)
 
-FILE(GLOB SOURCES_CPP src/*.cpp Utils/*.cpp Tree/src/*.cpp String/src/*.cpp LinkedList/src/*.cpp)
-FILE(GLOB SOURCES_HPP headers/*.hpp Utils/*.hpp Tree/headers/*.hpp String/headers/*.hpp LinkedList/src/*.hpp)
+FILE(GLOB SOURCES_CPP src/*.cpp libs/Utils/*.cpp libs/Tree/src/*.cpp
+                      libs/String/src/*.cpp libs/LinkedList/src/*.cpp)
+FILE(GLOB SOURCES_HPP headers/*.hpp libs/Utils/*.hpp libs/Tree/headers/*.hpp
+                      libs/String/headers/*.hpp libs/LinkedList/src/*.hpp)
 
 set(SOURCES
     ${SOURCES_CPP}
     ${SOURCES_HPP}
 )
 
-include_directories(headers Tree/headers Utils String/headers LinkedList/headers)
+include_directories(headers libs/Tree/headers libs/Utils libs/String/headers libs/LinkedList/headers)
 
 add_executable(${projectName} ${SOURCES})
 
