@@ -1,9 +1,81 @@
+#include <string.h>
+#include "RecursiveDescent.hpp"
 #include "Calculator.hpp"
 #include "DSL.hpp"
 
 double _recEvaluate(const TreeNode* node, LinkedList& symbolTable);
 Error _assign(const TreeNode* node, LinkedList& symbolTable);
 double _getSymbolValue(const TreeNode* node, LinkedList& symbolTable);
+
+#define ON_ERROR(err, ...)                  \
+do                                          \
+{                                           \
+    if (err)                                \
+    {                                       \
+        err.Print();                        \
+        __VA_ARGS__;                        \
+        return err;                         \
+    }                                       \
+} while (0)
+
+
+constexpr size_t MAX_LINE_SIZE = 512;
+
+Error Run(const char* listLogFolder, const char* treeLogFolder)
+{
+    Error err = Error(); 
+
+    LinkedList symbolTable = {};
+    err = symbolTable.Init();
+    ON_ERROR(err);
+
+    #ifndef NDEBUG
+    err = symbolTable.StartLogging(listLogFolder);
+    ON_ERROR(err, symbolTable.Destructor());
+    err = Tree::StartLogging(treeLogFolder);
+    ON_ERROR(err, symbolTable.Destructor());
+    #endif
+
+    Tree tree = {};
+    String expression = {};
+
+    err = expression.Create(MAX_LINE_SIZE);
+    ON_ERROR(err, symbolTable.Destructor());
+
+    while (fgets(expression.buf, MAX_LINE_SIZE, stdin))
+    {
+        err = expression.Filter();
+        ON_ERROR(err, symbolTable.Destructor(); expression.Destructor());
+        expression.length = strlen(expression.buf);
+
+        if (expression.length == 0)
+            continue;
+
+        err = ParseExpression(tree, symbolTable, expression);
+
+        ON_ERROR(err, symbolTable.Destructor(); tree.Destructor(); expression.Destructor());
+
+        err = EvaluateTree(tree, symbolTable, expression);
+
+        ON_ERROR(err, symbolTable.Destructor(); tree.Destructor(); expression.Destructor());
+
+        #ifndef NDEBUG
+        symbolTable.Dump();
+        tree.Dump();
+        #endif
+        tree.Destructor();
+    }
+
+    expression.Destructor();
+    symbolTable.Destructor();
+
+    #ifndef NDEBUG
+    symbolTable.EndLogging();
+    Tree::EndLogging();
+    #endif
+
+    return Error();
+}
 
 Error SymbolTableEntry::Create(String* name, SymbolType type)
 {
