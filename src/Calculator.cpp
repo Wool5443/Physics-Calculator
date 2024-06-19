@@ -2,15 +2,15 @@
 #include "DSL.hpp"
 
 double _recEvaluate(const TreeNode* node, LinkedList& symbolTable);
-ErrorCode _assign(const TreeNode* node, LinkedList& symbolTable);
+Error _assign(const TreeNode* node, LinkedList& symbolTable);
 double _getSymbolValue(const TreeNode* node, LinkedList& symbolTable);
 
-ErrorCode SymbolTableEntry::Create(String* name, SymbolType type)
+Error SymbolTableEntry::Create(String* name, SymbolType type)
 {
     RETURN_ERROR(this->name.Create(name));
     this->type = type;
 
-    return EVERYTHING_FINE;
+    return Error();
 }
 
 void SymbolTableEntry::Destructor()
@@ -19,7 +19,7 @@ void SymbolTableEntry::Destructor()
     this->type = ANY_SYMBOL;
 }
 
-ErrorCode EvaluateTree(const Tree& tree, LinkedList& symbolTable, const String& expression)
+Error EvaluateTree(const Tree& tree, LinkedList& symbolTable, const String& expression)
 {
     TreeNode* root = tree.root;
 
@@ -31,12 +31,12 @@ ErrorCode EvaluateTree(const Tree& tree, LinkedList& symbolTable, const String& 
 
     printf("%s = %lg\n", expression.buf, value);
 
-    return EVERYTHING_FINE;
+    return Error();
 }
 
 double _recEvaluate(const TreeNode* node, LinkedList& symbolTable)
 {
-    MyAssertSoft(node, ERROR_NULLPTR, return NAN);
+    SoftAssert(node, ERROR_NULLPTR, return NAN);
 
     switch (NODE_TYPE(node))
     {
@@ -79,9 +79,9 @@ case name:                                                                  \
     return NAN;
 }
 
-ErrorCode _assign(const TreeNode* node, LinkedList& symbolTable)
+Error _assign(const TreeNode* node, LinkedList& symbolTable)
 {
-    MyAssertSoft(node, ERROR_NULLPTR);
+    SoftAssert(node, ERROR_NULLPTR);
 
     double value = _recEvaluate(node->right, symbolTable);
 
@@ -92,12 +92,12 @@ ErrorCode _assign(const TreeNode* node, LinkedList& symbolTable)
     else
         symbolTable.data[indexRes.value].value = value;
 
-    return EVERYTHING_FINE;
+    return Error();
 }
 
 double _getSymbolValue(const TreeNode* node, LinkedList& symbolTable)
 {
-    MyAssertSoft(node, ERROR_NULLPTR);
+    SoftAssert(node, ERROR_NULLPTR);
 
     ListElemIndexResult indexRes = symbolTable.Find({ NODE_NAME(node).buf, ANY_SYMBOL });
 
