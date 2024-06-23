@@ -240,9 +240,14 @@ TreeNodeResult _getD(Context& context)
 
 TreeNodeResult _getP(Context& context)
 {
-    if (*CUR_CHAR_PTR == '_')
+    if (*CUR_CHAR_PTR == '-')
     {
-        CREATE_NODE_SAFE(result, TreeNode::New({}));
+        CUR_CHAR_PTR++;
+        CREATE_NODE_SAFE(expression, _getE(context));
+        CREATE_NODE_SAFE(result, TreeNode::New(MINUS_OPERATION, expression, nullptr),
+                         expression->Delete());
+
+        return { result, Error() };
     }
     else if (*CUR_CHAR_PTR == '(')
     {
