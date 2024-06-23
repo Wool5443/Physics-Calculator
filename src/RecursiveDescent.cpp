@@ -50,7 +50,7 @@ do                                                                      \
 // E        -> T {['+', '-']T}*
 // T        -> D {['*', '/']D}*
 // D        -> P {'^'D}*
-// P        -> '(' E ')' | Id
+// P        -> -P | '(' E ')' | Id
 // Symbol   -> Name
 // Name     -> ALPHABET+ {DIGITS u ALPHABET}*
 // Id       -> Symbol | N
@@ -102,12 +102,9 @@ TreeNodeResult _getS(Context& context)
 
         CREATE_NODE_SAFE(expression, _getE(context), result->Delete(); symbol->Delete());
 
-        CREATE_NODE_SAFE(_res, TreeNode::New({}, symbol, expression), symbol->Delete();
+        CREATE_NODE_SAFE(_res, TreeNode::New({ASSIGN_OPERATION}, symbol, expression), symbol->Delete();
                                                                       expression->Delete());
         result = _res;
-        NODE_TYPE(result)      = OPERATION_TYPE;
-        NODE_OPERATION(result) = ASSIGN_OPERATION;
-        NODE_PRIORITY(result)  = ASSIGN_OPERATION_PRIORITY;
     }
     else
     {
@@ -155,9 +152,7 @@ TreeNodeResult _getE(Context& context)
             return { nullptr, err };
         }
 
-        NODE_TYPE(result)      = OPERATION_TYPE;
-        NODE_OPERATION(result) = op;
-        NODE_PRIORITY(result)  = ADD_OPERATION_PRIORITY;
+        result->value = op;
     }
 
     return { result, Error() };
@@ -198,9 +193,7 @@ TreeNodeResult _getT(Context& context)
             return { nullptr, err };
         }
 
-        NODE_TYPE(result)      = OPERATION_TYPE;
-        NODE_OPERATION(result) = op;
-        NODE_PRIORITY(result)  = MUL_OPERATION_PRIORITY;
+        result->value = op;
     }
 
     return { result, Error() };
@@ -239,9 +232,7 @@ TreeNodeResult _getD(Context& context)
             return { nullptr, err };
         }
 
-        NODE_TYPE(result)      = OPERATION_TYPE;
-        NODE_OPERATION(result) = POWER_OPERATION;
-        NODE_PRIORITY(result)  = POWER_OPERATION_PRIORITY;
+        result->value = POWER_OPERATION;
     }
 
     return { result, Error() };
@@ -249,7 +240,11 @@ TreeNodeResult _getD(Context& context)
 
 TreeNodeResult _getP(Context& context)
 {
-    if (*CUR_CHAR_PTR == '(')
+    if (*CUR_CHAR_PTR == '_')
+    {
+        CREATE_NODE_SAFE(result, TreeNode::New({}));
+    }
+    else if (*CUR_CHAR_PTR == '(')
     {
         CUR_CHAR_PTR++;
 

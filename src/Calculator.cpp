@@ -92,6 +92,7 @@ void SymbolTableEntry::Destructor()
     this->type = ANY_SYMBOL;
 }
 
+
 static Error _evaluateTree(const Tree& tree, LinkedList& symbolTable, const String& expression)
 {
     TreeNode* root = tree.root;
