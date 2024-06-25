@@ -249,12 +249,11 @@ TreeNodeResult _getP(Context& context)
 
         return { result, Error() };
     }
-    else if (*CUR_CHAR_PTR == '(')
+
+    if (*CUR_CHAR_PTR == '(')
     {
         CUR_CHAR_PTR++;
-
         CREATE_NODE_SAFE(result, _getE(context));
-
         SyntaxAssertResult(*CUR_CHAR_PTR == ')', nullptr, result->Delete());
         CUR_CHAR_PTR++;
 
@@ -297,6 +296,7 @@ TreeNodeResult _getName(Context& context)
         if (err)
         {
             result->Delete();
+            symbol.Destructor();
             return { nullptr, err };
         }
     }
