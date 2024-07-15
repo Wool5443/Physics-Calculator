@@ -7,3 +7,4 @@ DEF_FUNC(MUL_OPERATION,     2, false, "*",      1, (a) * (b))
 DEF_FUNC(DIV_OPERATION,     2, false, "/",      1, (a) / (b))
 DEF_FUNC(POWER_OPERATION,   3, false, "^",      1, pow(a, b))
 DEF_FUNC(MINUS_OPERATION,   4, true,  "-",      1, -(a))
+
