@@ -1,3 +1,6 @@
 [submodule "libs/mlib"]
 	path = libs/mlib
 	url = https://github.com/Wool5443/mlib
+[submodule "libs/Utils"]
+	path = libs/Utils
+	url = https://github.com/Wool5443/Utils
