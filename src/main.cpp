@@ -13,7 +13,11 @@ int main()
 {
     signal(SIGINT, sigintFunction);
 
+    #ifndef NDEBUG
     Utils::Error err = PhCalculator::Run("../listLog", "../treeLog");
+    #else
+    Utils::Error err = PhCalculator::Run();
+    #endif
 
     err.Print();
 

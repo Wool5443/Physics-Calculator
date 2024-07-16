@@ -17,7 +17,11 @@ double _getSymbolValue(const Node* node, List& symbolTable);
 
 constexpr std::size_t MAX_LINE_SIZE = 512;
 
+#ifndef NDEBUG
 Utils::Error PhCalculator::Run(const char* listLogFolder, const char* treeLogFolder)
+#else
+Utils::Error PhCalculator::Run()
+#endif
 {
     List   symbolTable{};
     RETURN_ERROR(symbolTable.Error());

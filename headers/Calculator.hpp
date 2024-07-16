@@ -7,7 +7,11 @@
 
 namespace PhCalculator {
 
+#ifndef NDEBUG
 Utils::Error Run(const char* listLogFolder, const char* treeLogFolder);
+#else
+Utils::Error Run();
+#endif
 
 } // namespace PhCalculator
 
