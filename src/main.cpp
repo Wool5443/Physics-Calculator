@@ -13,9 +13,9 @@ int main()
 {
     signal(SIGINT, sigintFunction);
 
-    Error err = Run("../listLog", "../treeLog");
+    Utils::Error err = PhCalculator::Run("../listLog", "../treeLog");
 
     err.Print();
 
-    return err;
+    return 0;
 }

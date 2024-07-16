@@ -1,10 +1,19 @@
 #pragma once
 
-#define CREATE_NODE_SAFE(name, expression, ...)                         \
-TreeNode* name;                                                         \
+#include "BinaryTree.hpp"
+#include "LinkedList.hpp"
+#include "AST.hpp"
+
+using Node       = mlib::BinaryTreeNode<PhCalculator::TreeElement>;
+using NodeResult = Utils::Result<mlib::BinaryTreeNode<PhCalculator::TreeElement>*>;
+using Tree       = mlib::BinaryTree<PhCalculator::TreeElement>;
+using List       = mlib::LinkedList<PhCalculator::SymbolTableEntry>;
+
+#define CREATE_NODE_SAFE(name, expression)                              \
+Node* name;                                                             \
 do                                                                      \
 {                                                                       \
-    TreeNodeResult _TEMP = (expression);                                \
+    NodeResult _TEMP = (expression);                                    \
     RETURN_RESULT(_TEMP);                                               \
     name = _TEMP.value;                                                 \
 } while (0)                                                                      

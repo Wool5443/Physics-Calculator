@@ -1,19 +1,17 @@
-#include <ctype.h>
-#include <string.h>
+#include <utility>
 #include "DSL.hpp"
 #include "RecursiveDescent.hpp"
-#include "String.hpp"
 
 #define SyntaxAssert(expression, ...)                                   \
 do                                                                      \
 {                                                                       \
     if (!(expression))                                                  \
     {                                                                   \
-        SetConsoleColor(stdout, ConsoleColor::RED);                     \
+        SetConsoleColor(stdout, Utils::ConsoleColor::RED);              \
         fprintf(stdout, "SYNTAX ERROR AT %s\n", CUR_CHAR_PTR);          \
-        SetConsoleColor(stdout, ConsoleColor::WHITE);                   \
+        SetConsoleColor(stdout, Utils::ConsoleColor::WHITE);            \
         __VA_ARGS__;                                                    \
-        return CREATE_ERROR(ERROR_SYNTAX);                              \
+        return CREATE_ERROR(Utils::ERROR_SYNTAX);                       \
     }                                                                   \
 } while (0)
 
@@ -22,11 +20,11 @@ do                                                                      \
 {                                                                       \
     if (!(expression))                                                  \
     {                                                                   \
-        SetConsoleColor(stdout, ConsoleColor::RED);                     \
+        SetConsoleColor(stdout, Utils::ConsoleColor::RED);              \
         fprintf(stdout, "SYNTAX ERROR AT %s\n", CUR_CHAR_PTR);          \
-        SetConsoleColor(stdout, ConsoleColor::WHITE);                   \
+        SetConsoleColor(stdout, Utils::ConsoleColor::WHITE);            \
         __VA_ARGS__;                                                    \
-        return { poison, CREATE_ERROR(ERROR_SYNTAX) };                  \
+        return { poison, CREATE_ERROR(Utils::ERROR_SYNTAX) };           \
     }                                                                   \
 } while (0)
 
@@ -56,54 +54,56 @@ do                                                                      \
 // Id       -> Symbol | N
 // N        -> DIGITS+
 
+using namespace mlib;
+using namespace PhCalculator;
+
 struct Context
 {
-    const char* expression;
-    LinkedList* symbolTable;
+    const char*                   expression;
+    List& symbolTable;
 };
 
-TreeNodeResult _getS     (Context& context);
-TreeNodeResult _getE     (Context& context);
-TreeNodeResult _getT     (Context& context);
-TreeNodeResult _getD     (Context& context);
-TreeNodeResult _getP     (Context& context);
-TreeNodeResult _getSymbol(Context& context);
-TreeNodeResult _getName  (Context& context);
-TreeNodeResult _getId    (Context& context);
-TreeNodeResult _getN     (Context& context);
+NodeResult _getS     (Context& context);
+NodeResult _getE     (Context& context);
+NodeResult _getT     (Context& context);
+NodeResult _getD     (Context& context);
+NodeResult _getP     (Context& context);
+NodeResult _getSymbol(Context& context);
+NodeResult _getName  (Context& context);
+NodeResult _getId    (Context& context);
+NodeResult _getN     (Context& context);
 
-Error ParseExpression(Tree& tree, LinkedList& symbolTable, String& string)
+Utils::Error PhCalculator::ParseExpression(Tree&     tree,
+                                           List&     symbolTable,
+                                           String<>& string)
 {
-    Context context = { string.buf, &symbolTable };
+    Context context = { string.RawPtr(), symbolTable };
 
-    TreeNodeResult root = _getS(context);
+    NodeResult root = _getS(context);
 
     RETURN_ERROR(root.error);
 
     SyntaxAssert(*CUR_CHAR_PTR == '\0');
 
-    RETURN_ERROR(tree.Init(root.value));
+    tree.root = root.value;
 
-    return Error();
+    return Utils::Error();
 }
 
-TreeNodeResult _getS(Context& context)
+NodeResult _getS(Context& context)
 {
     const char* assignmentCharPtr = strchr(CUR_CHAR_PTR, '=');
 
-    TreeNode* result = nullptr;
+    Node* result = nullptr;
 
     if (assignmentCharPtr)
     {
-        CREATE_NODE_SAFE(symbol, _getSymbol(context), result->Delete());
+        CREATE_NODE_SAFE(symbol, _getSymbol(context));
 
-        SyntaxAssertResult(*CUR_CHAR_PTR == '=', nullptr, result->Delete());
+        SyntaxAssertResult(*CUR_CHAR_PTR == '=', nullptr);
         CUR_CHAR_PTR++;
-
-        CREATE_NODE_SAFE(expression, _getE(context), result->Delete(); symbol->Delete());
-
-        CREATE_NODE_SAFE(_res, TreeNode::New({ASSIGN_OPERATION}, symbol, expression), symbol->Delete();
-                                                                      expression->Delete());
+        CREATE_NODE_SAFE(expression, _getE(context));
+        CREATE_NODE_SAFE(_res, Node::New(ASSIGN_OPERATION, symbol, expression));
         result = _res;
     }
     else
@@ -114,10 +114,10 @@ TreeNodeResult _getS(Context& context)
 
     SyntaxAssertResult(*CUR_CHAR_PTR == '\0', nullptr);
 
-    return { result, Error() };
+    return { result, Utils::Error() };
 }
 
-TreeNodeResult _getE(Context& context)
+NodeResult _getE(Context& context)
 {
     CREATE_NODE_SAFE(result, _getT(context));
 
@@ -127,38 +127,20 @@ TreeNodeResult _getE(Context& context)
 
         CUR_CHAR_PTR++;
 
-        CREATE_NODE_SAFE(nextT, _getT(context), result->Delete());
+        CREATE_NODE_SAFE(nextT, _getT(context));
 
-        CREATE_NODE_SAFE(resCopy, TreeNode::New(result->value, result->left, result->right),
-            result->Delete(), nextT->Delete());
+        CREATE_NODE_SAFE(resCopy, Node::New(result->value, result->left, result->right));
 
-        Error err = result->SetLeft(resCopy);
-        if (err)
-        {
-            result->Delete();
-            nextT->Delete();
-            resCopy->Delete();
-
-            return { nullptr, err };
-        }
-
-        err = result->SetRight(nextT);
-        if (err)
-        {
-            result->Delete();
-            nextT->Delete();
-            resCopy->Delete();
-
-            return { nullptr, err };
-        }
+        RETURN_ERROR_RESULT(result->SetLeft (resCopy), nullptr);
+        RETURN_ERROR_RESULT(result->SetRight(nextT),   nullptr);
 
         result->value = op;
     }
 
-    return { result, Error() };
+    return { result, Utils::Error() };
 }
 
-TreeNodeResult _getT(Context& context)
+NodeResult _getT(Context& context)
 {
     CREATE_NODE_SAFE(result, _getD(context));
 
@@ -168,38 +150,20 @@ TreeNodeResult _getT(Context& context)
 
         CUR_CHAR_PTR++;
 
-        CREATE_NODE_SAFE(nextD, _getD(context), result->Delete());
+        CREATE_NODE_SAFE(nextD, _getD(context));
 
-        CREATE_NODE_SAFE(resCopy, TreeNode::New(result->value, result->left, result->right),
-            result->Delete(), nextD->Delete());
+        CREATE_NODE_SAFE(resCopy, Node::New(result->value, result->left, result->right));
 
-        Error err = result->SetLeft(resCopy);
-        if (err)
-        {
-            result->Delete();
-            nextD->Delete();
-            resCopy->Delete();
-
-            return { nullptr, err };
-        }
-
-        err = result->SetRight(nextD);
-        if (err)
-        {
-            result->Delete();
-            nextD->Delete();
-            resCopy->Delete();
-
-            return { nullptr, err };
-        }
+        RETURN_ERROR_RESULT(result->SetLeft (resCopy), nullptr);
+        RETURN_ERROR_RESULT(result->SetRight(nextD),   nullptr);
 
         result->value = op;
     }
 
-    return { result, Error() };
+    return { result, Utils::Error() };
 }
 
-TreeNodeResult _getD(Context& context)
+NodeResult _getD(Context& context)
 {
     CREATE_NODE_SAFE(result, _getP(context));
 
@@ -207,104 +171,74 @@ TreeNodeResult _getD(Context& context)
     {
         CUR_CHAR_PTR++;
 
-        CREATE_NODE_SAFE(nextD, _getD(context), result->Delete());
+        CREATE_NODE_SAFE(nextD, _getD(context));
 
-        CREATE_NODE_SAFE(resCopy, TreeNode::New(result->value, result->left, result->right),
-            result->Delete(), nextD->Delete());
+        CREATE_NODE_SAFE(resCopy, Node::New(result->value, result->left, result->right));
 
-        Error err = result->SetLeft(resCopy);
-        if (err)
-        {
-            result->Delete();
-            nextD->Delete();
-            resCopy->Delete();
-
-            return { nullptr, err };
-        }
-
-        err = result->SetRight(nextD);
-        if (err)
-        {
-            result->Delete();
-            nextD->Delete();
-            resCopy->Delete();
-
-            return { nullptr, err };
-        }
+        RETURN_ERROR_RESULT(result->SetLeft (resCopy), nullptr);
+        RETURN_ERROR_RESULT(result->SetRight(nextD),   nullptr);
 
         result->value = POWER_OPERATION;
     }
 
-    return { result, Error() };
+    return { result, Utils::Error() };
 }
 
-TreeNodeResult _getP(Context& context)
+NodeResult _getP(Context& context)
 {
     if (*CUR_CHAR_PTR == '-')
     {
         CUR_CHAR_PTR++;
         CREATE_NODE_SAFE(expression, _getE(context));
-        CREATE_NODE_SAFE(result, TreeNode::New(MINUS_OPERATION, expression, nullptr),
-                         expression->Delete());
+        CREATE_NODE_SAFE(result, Node::New(MINUS_OPERATION, expression, nullptr));
 
-        return { result, Error() };
+        return { result, Utils::Error() };
     }
 
     if (*CUR_CHAR_PTR == '(')
     {
         CUR_CHAR_PTR++;
         CREATE_NODE_SAFE(result, _getE(context));
-        SyntaxAssertResult(*CUR_CHAR_PTR == ')', nullptr, result->Delete());
+        SyntaxAssertResult(*CUR_CHAR_PTR == ')', nullptr);
         CUR_CHAR_PTR++;
 
-        return { result, Error() };
+        return { result, Utils::Error() };
     }
 
     return _getId(context);
 }
 
-TreeNodeResult _getSymbol(Context& context)
+NodeResult _getSymbol(Context& context)
 {
     return _getName(context);
 }
 
-TreeNodeResult _getName(Context& context)
+NodeResult _getName(Context& context)
 {
     SyntaxAssertResult(isalpha(*CUR_CHAR_PTR), nullptr);
 
-    String name = {};
-    name.Create();
-
-    name.Append(*(CUR_CHAR_PTR++));
+    String name = *(CUR_CHAR_PTR++);
 
     while (isalnum(*CUR_CHAR_PTR) || *CUR_CHAR_PTR == '_')
-    {
-        name.Append(*(CUR_CHAR_PTR++));
-    }
+        name += *(CUR_CHAR_PTR++);
 
-    CREATE_NODE_SAFE(result, TreeNode::New({}));
+    CREATE_NODE_SAFE(result, Node::New());
     NODE_TYPE(result) = NAME_TYPE;
     NODE_NAME(result) = name;
 
-    ListElemIndexResult findNameResult = context.symbolTable->Find({ name.buf, ANY_SYMBOL });
+    auto findNameResult = context.symbolTable.Find(SymbolTableEntry(name));
 
-    if (findNameResult.error == ERROR_NOT_FOUND)
+    if (findNameResult.error == Utils::ERROR_NOT_FOUND)
     {
-        SymbolTableEntry symbol = {};
-        symbol.Create(&name, VARIABLE_SYMBOL);
-        Error err = context.symbolTable->PushBack(symbol);
-        if (err)
-        {
-            result->Delete();
-            symbol.Destructor();
-            return { nullptr, err };
-        }
+        SymbolTableEntry symbol{name, PhCalculator::VARIABLE_SYMBOL};
+
+        RETURN_ERROR_RESULT(context.symbolTable.PushBack(symbol), nullptr);
     }
 
-    return { result, Error() };
+    return { result, Utils::Error() };
 }
 
-TreeNodeResult _getId(Context& context)
+NodeResult _getId(Context& context)
 {
     if (isalpha(*CUR_CHAR_PTR))
         return _getName(context);
@@ -312,7 +246,7 @@ TreeNodeResult _getId(Context& context)
     return _getN(context);
 }
 
-TreeNodeResult _getN(Context& context)
+NodeResult _getN(Context& context)
 {
     char* endPtr = nullptr;
 
@@ -321,10 +255,10 @@ TreeNodeResult _getN(Context& context)
 
     CUR_CHAR_PTR = endPtr;
 
-    CREATE_NODE_SAFE(result, TreeNode::New({}));
+    CREATE_NODE_SAFE(result, Node::New());
 
     NODE_TYPE(result)   = NUMBER_TYPE;
     NODE_NUMBER(result) = val;
 
-    return { result, Error() };
+    return { result, Utils::Error() };
 }
